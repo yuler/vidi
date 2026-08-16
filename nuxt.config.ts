@@ -9,12 +9,13 @@ export default defineNuxtConfig({
       title: 'Vidi',
       viewport: 'width=device-width, initial-scale=1, viewport-fit=cover',
       meta: [
-        { name: 'theme-color', content: '#0f172a' },
+        { name: 'theme-color', content: '#fdf7ef' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
       ],
     },
   },
   css: ['~/assets/css/main.css'],
+  ignore: ['**/data/**'],
   vite: {
     plugins: [tailwindcss()],
   },
@@ -26,7 +27,7 @@ export default defineNuxtConfig({
     },
   ],
   colorMode: {
-    preference: 'system',
-    fallback: 'dark',
+    preference: 'light',
+    fallback: 'light',
   },
 })

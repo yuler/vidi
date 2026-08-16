@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Course, VideoItem } from '~~/shared/types'
-import { Play, History, AlertTriangle } from '@lucide/vue'
+import { History, Play, AlertTriangle, Film, RefreshCw } from '@lucide/vue'
 
 const { flatCourses, status, error, refresh } = useCourses()
 const { progress } = useProgress()
@@ -36,90 +36,94 @@ const continueWatching = computed<{ course: Course; video: VideoItem; courseUrl:
 function watchUrl(course: Course, video: VideoItem) {
   return `/watch/${course.rootIndex}/${encodeURIComponent(course.dir)}/${video.path.split('/').map(encodeURIComponent).join('/')}`
 }
-
-function pct(course: Course, video: VideoItem): number {
-  const p = progress.value?.[video.path]
-  if (!p || !p.duration) return 0
-  return Math.min(100, Math.round((p.position / p.duration) * 100))
-}
-
-function isDone(course: Course, video: VideoItem): boolean {
-  const p = progress.value?.[video.path]
-  if (!p || !p.duration) return false
-  return p.position / p.duration >= 0.95 || p.duration - p.position <= 5
-}
 </script>
 
 <template>
   <div>
-    <div v-if="error" class="mb-6 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm">
-      <div class="flex items-center gap-2 font-medium">
-        <AlertTriangle class="h-4 w-4" />
-        未找到硬盘
+    <div v-if="error" class="mb-8 flex items-center gap-4 rounded-2xl border border-destructive/40 bg-card p-6">
+      <span class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
+        <AlertTriangle class="size-6" />
+      </span>
+      <div class="min-w-0">
+        <p class="text-base font-bold">未找到硬盘</p>
+        <p class="mt-0.5 text-sm text-muted-foreground">请确认移动硬盘已连接，或到设置页检查视频目录。</p>
+        <Button variant="outline" class="mt-3" @click="refresh">
+          <RefreshCw class="size-4" />
+          重试
+        </Button>
       </div>
-      <p class="mt-1 text-muted-foreground">请确认移动硬盘已连接，或到设置页检查视频目录。</p>
-      <Button size="sm" variant="outline" class="mt-2" @click="refresh">重试</Button>
     </div>
 
     <section v-if="continueWatching.length" class="mb-10">
-      <h2 class="mb-4 flex items-center gap-2 text-lg font-semibold">
-        <History class="h-5 w-5" />
+      <h2 class="mb-4 flex items-center gap-2 text-xl font-extrabold">
+        <History class="size-6 text-primary" />
         继续观看
       </h2>
-      <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+      <div class="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
         <NuxtLink
           v-for="item in continueWatching"
           :key="item.watchUrl"
           :to="item.watchUrl"
-          class="group"
+          class="group overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
         >
-          <VideoCover
-            :course="item.course"
-            :video="item.video"
-            class="mb-2 aspect-video rounded-xl"
-          >
-            <template #fallback>
-              <Play class="h-10 w-10 text-muted-foreground transition group-hover:scale-110 group-hover:text-primary" />
-            </template>
-            <template #overlay>
-              <div class="absolute bottom-0 left-0 right-0 h-1.5 bg-background/60">
-                <div class="h-full bg-primary" :style="{ width: item.pct + '%' }" />
-              </div>
-            </template>
-          </VideoCover>
-          <p class="line-clamp-1 text-sm font-medium">{{ item.video.title }}</p>
-          <p class="text-xs text-muted-foreground">{{ item.course.title }}</p>
+          <div class="relative">
+            <VideoCover :course="item.course" :video="item.video" class="aspect-video w-full">
+              <template #fallback>
+                <span class="flex size-12 items-center justify-center rounded-full bg-white/90 text-primary shadow">
+                  <Play class="size-5 fill-current" />
+                </span>
+              </template>
+              <template #overlay>
+                <div class="absolute bottom-0 left-0 right-0 h-2 bg-black/30">
+                  <div class="h-full rounded-r-full bg-primary" :style="{ width: item.pct + '%' }" />
+                </div>
+              </template>
+            </VideoCover>
+          </div>
+          <div class="p-4">
+            <p class="line-clamp-1 text-base font-bold">{{ item.video.title }}</p>
+            <p class="mt-1 line-clamp-1 text-sm text-muted-foreground">{{ item.course.title }}</p>
+          </div>
         </NuxtLink>
       </div>
     </section>
 
     <section>
-      <h2 class="mb-4 text-lg font-semibold">课程</h2>
+      <h2 class="mb-4 flex items-center gap-2 text-xl font-extrabold">
+        <Film class="size-6 text-primary" />
+        课程
+      </h2>
 
-      <div v-if="status === 'pending'" class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-        <div v-for="i in 8" :key="i" class="aspect-video animate-pulse rounded-xl bg-muted" />
+      <div v-if="status === 'pending'" class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div v-for="i in 6" :key="i" class="aspect-video animate-pulse rounded-2xl bg-card" />
       </div>
 
-      <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+      <div v-else class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         <NuxtLink
           v-for="course in flatCourses"
           :key="course.slug"
           :to="`/course/${course.slug}`"
-          class="group overflow-hidden rounded-xl border bg-card transition hover:border-primary hover:shadow-md"
+          class="group overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
         >
           <VideoCover
             v-if="course.videos[0]"
             :course="course"
             :video="course.videos[0]"
-            class="aspect-video w-full border-b"
-          />
-          <div class="p-5">
-            <div class="mb-2 flex items-center justify-between">
-              <h3 class="text-lg font-bold leading-snug group-hover:text-primary">
-                {{ course.title }}
-              </h3>
-            </div>
-            <p class="text-sm text-muted-foreground">共 {{ course.videoCount }} 集</p>
+            class="aspect-video w-full"
+          >
+            <template #fallback>
+              <span class="flex size-12 items-center justify-center rounded-full bg-white/90 text-primary shadow">
+                <Play class="size-5 fill-current" />
+              </span>
+            </template>
+          </VideoCover>
+          <div class="flex items-center justify-between gap-3 p-5">
+            <h3 class="min-w-0 line-clamp-2 text-xl font-extrabold leading-snug group-hover:text-primary">
+              {{ course.title }}
+            </h3>
+            <span class="shrink-0 rounded-full bg-secondary px-3 py-1 text-sm font-bold text-secondary-foreground">
+              共 {{ course.videoCount }} 集
+            </span>
           </div>
         </NuxtLink>
       </div>

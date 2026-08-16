@@ -135,23 +135,23 @@ onBeforeUnmount(() => {
 <template>
   <div class="flex flex-col gap-4">
     <div class="flex items-center justify-between gap-2">
-      <Button as-child variant="ghost" size="sm">
+      <Button as-child variant="ghost" class="rounded-xl text-base font-bold text-muted-foreground">
         <NuxtLink :to="`/course/${course?.slug ?? ''}`">
-          <ArrowLeft class="mr-1 h-4 w-4" />
+          <ArrowLeft class="mr-1 size-5" />
           返回课程
         </NuxtLink>
       </Button>
       <div class="min-w-0 text-center">
-        <p class="truncate text-sm font-semibold">{{ video?.title }}</p>
-        <p class="truncate text-xs text-muted-foreground">{{ course?.title }}</p>
+        <p class="truncate text-lg font-bold">{{ video?.title }}</p>
+        <p class="truncate text-sm text-muted-foreground">{{ course?.title }}</p>
       </div>
-      <Button variant="ghost" size="sm" @click="enterFullscreen">
-        <Gauge class="mr-1 h-4 w-4" />
+      <Button variant="ghost" class="rounded-xl text-base font-bold text-muted-foreground" @click="enterFullscreen">
+        <Gauge class="mr-1 size-5" />
         全屏
       </Button>
     </div>
 
-    <div class="relative overflow-hidden rounded-xl bg-black">
+    <div class="relative overflow-hidden rounded-2xl bg-black">
       <video
         ref="videoEl"
         :src="streamUrl"
@@ -173,11 +173,11 @@ onBeforeUnmount(() => {
 
       <div class="absolute bottom-3 right-3 z-10 flex items-center gap-2">
         <div class="relative">
-          <Button variant="secondary" size="sm" class="bg-black/60 text-white hover:bg-black/80" @click.stop="speedMenuOpen = !speedMenuOpen">
+          <Button variant="secondary" size="lg" class="rounded-xl bg-black/60 text-base font-bold text-white hover:bg-black/80" @click.stop="speedMenuOpen = !speedMenuOpen">
             {{ speed }}x
           </Button>
-          <div v-if="speedMenuOpen" class="absolute bottom-full right-0 z-20 mb-1 flex flex-col gap-1 rounded-lg bg-black/80 p-2">
-            <button v-for="s in [0.5, 0.75, 1, 1.25, 1.5, 2]" :key="s" class="rounded px-3 py-1.5 text-sm text-white hover:bg-white/20" :class="{ 'bg-white/30': speed === s }" @click="setSpeed(s)">
+          <div v-if="speedMenuOpen" class="absolute bottom-full right-0 z-20 mb-1 flex flex-col gap-1 rounded-xl bg-black/80 p-2">
+            <button v-for="s in [0.5, 0.75, 1, 1.25, 1.5, 2]" :key="s" class="rounded-lg px-3 py-2 text-base font-semibold text-white hover:bg-white/20" :class="{ 'bg-white/30': speed === s }" @click="setSpeed(s)">
               {{ s }}x
             </button>
           </div>
@@ -185,10 +185,13 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div v-if="nextVideo" class="flex items-center justify-between rounded-lg border bg-card p-3">
-      <p class="text-sm text-muted-foreground">下一集：{{ nextVideo.video.title }}</p>
-      <Button size="sm" @click="goNext">
-        <SkipForward class="mr-1 h-4 w-4" />
+    <div v-if="nextVideo" class="flex items-center justify-between gap-4 rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
+      <div class="min-w-0">
+        <p class="text-sm font-bold text-muted-foreground">下一集</p>
+        <p class="truncate text-base font-bold">{{ nextVideo.video.title }}</p>
+      </div>
+      <Button size="lg" class="shrink-0 rounded-xl" @click="goNext">
+        <SkipForward class="mr-1 size-5" />
         下一集
       </Button>
     </div>
