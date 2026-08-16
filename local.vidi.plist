@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>local.vidi</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/yule/.local/share/fnm/node-versions/v24.8.0/installation/bin/node</string>
+        <string>/Users/yule/Projects/vidi/.output/server/index.mjs</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/yule/Projects/vidi</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PORT</key>
+        <string>8080</string>
+        <key>NODE_ENV</key>
+        <string>production</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/vidi.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/vidi.log</string>
+    <key>ProcessType</key>
+    <string>Interactive</string>
+</dict>
+</plist>

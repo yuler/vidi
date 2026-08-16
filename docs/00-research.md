@@ -4,9 +4,11 @@
 
 家里的英语学习视频存于移动硬盘（`/Volumes/ToshibaSSD/英语资料`）：
 
-- 6 套课程、1486 个 mp4、约 117GB，基本是 H.264 mp4（iPad Safari 可直接硬解）
+- 6 套课程、约 117GB，基本是 H.264 mp4（iPad Safari 可直接硬解）
 - 目录随意命名（中文 + 数字编号），例如 `1.【自然拼读+音标+发音规则】三合一（121集最新更新）`
-- 混有 `._*`（macOS 系统文件）和 `*.baiduyun.p.downloading`（未下载完），需要过滤
+- 混有 `._*`（macOS AppleDouble 元数据文件）和 `*.baiduyun.p.downloading`（未下载完），需要过滤
+
+> 实地探查更正（2026-08）：真实 mp4 为 **745 个**，此前统计的 1486 是把 820 个 `._*` 元数据文件误算进去。另含 70 个 mp3、5 个 PDF。详见 [02-decision-tree.md](02-decision-tree.md) 的目录结构事实。
 
 目标：在这台 Mac 上一直运行一个视频小站，孩子在 iPad 浏览器打开即看，按课程浏览、记录播放进度。
 
@@ -39,7 +41,7 @@
 **能跑的最简版**（server.js ~250 行 + 前端 ~300 行 + launchd）AI 辅助 1–2 小时可出第一版。
 但从"能跑"到"孩子稳定可用"，成本集中在：
 
-1. **iPad Safari 兼容性调试**（最大不确定项）：编码不兼容会黑屏/无声，需要 ffmpeg 转码管线（复杂度翻 3 倍）。这批网课基本是 H.264 mp4，大概率直通，无需转码。
+1. **iPad Safari 兼容性调试**（原最大不确定项）：编码不兼容会黑屏/无声，需要 ffmpeg 转码管线（复杂度翻 3 倍）。**实地探查后已退役**：抽查样本全部为 H.264 + AAC（720p/1080p），iPad Safari 可直接硬解，直通播放即可。
 2. **Range/seek 实现**：不写对 iPad 拖进度条失效（206/Content-Range/HEAD，约 40 行）。
 3. **进度续播细节**：节流上报、切后台保存、快速拖拽误记录、多设备并发写。
 4. **中文文件名与特殊字符**：URL 编码、`[]`、空格、`.downloading` 过滤。
@@ -66,11 +68,12 @@
 | 层 | 选型 | 理由 |
 |---|---|---|
 | 运行时 | Node.js（本机 v24） | 语法好改、异步流式强 |
-| HTTP 服务 | Node 内置 `http` 模块 | 零依赖，无 node_modules |
+| 框架 | **Nuxt 4**（Vue 3）全栈 | 前后端一个仓库，SSR + Nitro 内置服务端 |
 | 视频流 | 手写 Range 处理 | iPad 拖进度必须 |
 | 列表扫描 | Node `fs` 递归扫 `英语资料` | 过滤脏文件，中文自然排序 |
 | 进度存储 | `progress.json`（防抖写入） | 跨设备统一、可读可改 |
-| 框架 | Nuxt 4（Vue 3）全栈 | 前后端一个仓库，Nitro 内置服务端 |
 | UI | Tailwind CSS v4 + shadcn-vue（reka-ui 底层） | 组件源码进仓库，每行可改；inspira-ui 按需 |
 | 常驻 | launchd LaunchAgent（用户态） | 能读用户权限的硬盘、开机自启 |
 | 端口 | 8080 | iPad 访问 `http://Mac局域网IP:8080` |
+
+> 注：早期设想「原生 HTML+CSS+JS、Node 内置 http、零依赖」，后改为 Nuxt 4 全栈（见 [01-architecture.md](01-architecture.md)「对调研决策的更新」）。
