@@ -38,7 +38,7 @@ function groupCount(group: string): number {
 }
 
 function groupOpenDefault(group: string): boolean {
-  return !course.value?.videos.some((v) => v.group === group && !isDone(v))
+  return !!course.value?.videos.some((v) => v.group === group && !isDone(v))
 }
 
 watchEffect(() => {
@@ -73,9 +73,10 @@ watchEffect(() => {
             :key="video.path"
             :to="watchUrl(video)"
             class="group flex items-center gap-4 rounded-2xl border border-border/70 bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+            @click="requestPageFullscreen"
           >
             <div class="relative shrink-0">
-              <VideoCover :course="course" :video="video" class="h-16 w-28 overflow-hidden rounded-xl">
+              <VideoCover :course="course" :video="video" :complete="isDone(video)" class="h-16 w-28 overflow-hidden rounded-xl">
                 <template #fallback>
                   <span
                     class="flex items-center justify-center rounded-full"
@@ -128,9 +129,10 @@ watchEffect(() => {
               :key="video.path"
               :to="watchUrl(video)"
               class="group flex items-center gap-4 rounded-2xl border border-border/70 bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+              @click="requestPageFullscreen"
             >
               <div class="relative shrink-0">
-                <VideoCover :course="course" :video="video" class="h-16 w-28 overflow-hidden rounded-xl">
+                <VideoCover :course="course" :video="video" :complete="isDone(video)" class="h-16 w-28 overflow-hidden rounded-xl">
                   <template #fallback>
                     <span
                       class="flex items-center justify-center rounded-full"
