@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Course, VideoItem } from '~~/shared/types'
+import { matchProgressVideo, progressKey } from '~~/shared/progress'
 import { History, Play, AlertTriangle, Film, RefreshCw } from '@lucide/vue'
 
 const { flatCourses, status, error, refresh } = useCourses()
@@ -12,22 +13,19 @@ const continueWatching = computed<{ course: Course; video: VideoItem; courseUrl:
     .filter(([, p]) => p && p.position > 0 && p.duration > 0 && p.position / p.duration < 0.95 && p.duration - p.position > 5)
     .sort((a, b) => b[1].updatedAt - a[1].updatedAt)
 
-  for (const [key] of entries) {
-    for (const course of flatCourses.value) {
-      const video = course.videos.find((v) => v.path === key)
-      if (video) {
-        const p = progress.value?.[key]
-        out.push({
-          course,
-          video,
-          courseUrl: `/course/${course.slug}`,
-          watchUrl: watchUrl(course, video),
-          pct: p ? Math.round((p.position / p.duration) * 100) : 0,
-        })
-        seen.add(key)
-        break
-      }
-    }
+  for (const [key, p] of entries) {
+    const match = matchProgressVideo(key, flatCourses.value)
+    if (!match) continue
+    const id = progressKey(match.course.slug, match.video.path)
+    if (seen.has(id)) continue
+    seen.add(id)
+    out.push({
+      course: match.course,
+      video: match.video,
+      courseUrl: `/course/${match.course.slug}`,
+      watchUrl: watchUrl(match.course, match.video),
+      pct: Math.round((p.position / p.duration) * 100),
+    })
     if (out.length >= 6) break
   }
   return out

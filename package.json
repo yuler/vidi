@@ -6,6 +6,7 @@
     "build": "nuxt build",
     "dev": "nuxt dev",
     "preview": "nuxt preview",
+    "typecheck": "nuxt typecheck",
     "postinstall": "nuxt prepare",
     "web": "open http://vidi.local",
     "addresses": "bash scripts/vidi-addresses.sh",

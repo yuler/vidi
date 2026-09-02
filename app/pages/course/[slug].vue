@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Course, VideoItem } from '~~/shared/types'
+import { progressEntry } from '~~/shared/progress'
 import { ArrowLeft, Folder, Play, Check, Music, ChevronDown } from '@lucide/vue'
 
 const route = useRoute()
@@ -21,13 +22,13 @@ function watchUrl(video: VideoItem) {
 }
 
 function pct(video: VideoItem): number {
-  const p = progress.value?.[video.path]
+  const p = progressEntry(progress.value, course.value?.slug ?? '', video.path)
   if (!p || !p.duration) return 0
   return Math.min(100, Math.round((p.position / p.duration) * 100))
 }
 
 function isDone(video: VideoItem): boolean {
-  const p = progress.value?.[video.path]
+  const p = progressEntry(progress.value, course.value?.slug ?? '', video.path)
   if (!p || !p.duration) return false
   return p.position / p.duration >= 0.95 || p.duration - p.position <= 5
 }

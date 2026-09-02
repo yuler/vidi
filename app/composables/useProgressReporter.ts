@@ -29,12 +29,17 @@ export function useProgressReporter() {
     }
   }
 
+  function onHidden() {
+    drain()
+  }
+
   onMounted(() => {
-    const flush = () => drain()
-    document.addEventListener('visibilitychange', flush)
-    window.addEventListener('pagehide', flush)
+    document.addEventListener('visibilitychange', onHidden)
+    window.addEventListener('pagehide', onHidden)
   })
-  onUnmounted(() => {
+  onBeforeUnmount(() => {
+    document.removeEventListener('visibilitychange', onHidden)
+    window.removeEventListener('pagehide', onHidden)
     drain()
   })
 

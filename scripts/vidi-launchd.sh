@@ -15,12 +15,59 @@ sudo_run() {
   osascript -e "do shell script \"$1\" with administrator privileges" >/dev/null
 }
 
+resolve_node_bin() {
+  if ! command -v node >/dev/null 2>&1; then
+    echo "error: node not found on PATH" >&2
+    exit 1
+  fi
+  node -p 'process.execPath'
+}
+
+render_plist() {
+  local src="$1" dest="$2" node_bin="$3"
+  local py
+  py="$(command -v python3 2>/dev/null || true)"
+  if [[ -z "$py" && -x /usr/bin/python3 ]]; then
+    py=/usr/bin/python3
+  fi
+  if [[ -z "$py" ]]; then
+    echo "error: python3 is required to render launchd plists" >&2
+    exit 1
+  fi
+  "$py" - "$src" "$dest" "$PROJECT_DIR" "$node_bin" <<'PY'
+import sys
+
+src, dest, project, node = sys.argv[1:5]
+
+def xml_escape(value):
+    return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+text = open(src, encoding="utf-8").read()
+text = text.replace("@@PROJECT_DIR@@", xml_escape(project))
+text = text.replace("@@NODE_BIN@@", xml_escape(node))
+if "@@PROJECT_DIR@@" in text or "@@NODE_BIN@@" in text:
+    sys.stderr.write("error: plist template placeholders were not substituted\n")
+    sys.exit(1)
+open(dest, "w", encoding="utf-8").write(text)
+PY
+}
+
 install_plists() {
-  cp "$AGENT_SRC" "$AGENT_DST"
-  sudo_run "cp '$PROXY_SRC' '$PROXY_DST'"
+  local node_bin tmp_agent tmp_proxy
+  node_bin="$(resolve_node_bin)"
+  tmp_agent="$(mktemp)"
+  tmp_proxy="$(mktemp)"
+  render_plist "$AGENT_SRC" "$tmp_agent" "$node_bin"
+  render_plist "$PROXY_SRC" "$tmp_proxy" "$node_bin"
+  mkdir -p "$(dirname "$AGENT_DST")"
+  cp "$tmp_agent" "$AGENT_DST"
+  sudo_run "cp '$tmp_proxy' '$PROXY_DST'"
+  rm -f "$tmp_agent" "$tmp_proxy"
   echo "plists installed:"
   echo "  $AGENT_DST"
   echo "  $PROXY_DST"
+  echo "  node: $node_bin"
+  echo "  project: $PROJECT_DIR"
 }
 
 load_agent() {
@@ -65,7 +112,7 @@ case "${1:-}" in
   logs)     tail -f /tmp/vidi.log /tmp/vidi-proxy.log ;;
   *)
     echo "usage: $0 {install|start|stop|restart|status|logs}"
-    echo "  install  复制 plist 到系统位置（proxy 需密码）"
+    echo "  install  按本机项目路径和 node 渲染 plist 并安装（proxy 需密码）"
     echo "  start    加载/重启两个 job"
     echo "  stop     卸载两个 job"
     echo "  restart  重启两个 job"
