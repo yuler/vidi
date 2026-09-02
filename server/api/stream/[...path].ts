@@ -1,6 +1,7 @@
 import { promises as fsp } from 'node:fs'
 import fs from 'node:fs'
 import path from 'node:path'
+import { getSettings } from '../../utils/cache'
 import { ensureFreshIndex } from '../../utils/refresh'
 import { findVideo, parseSegment, videoFileAbs } from '../../utils/video'
 
@@ -30,7 +31,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Not found' })
   }
 
-  const filePath = videoFileAbs(index, seg, video)
+  const settings = await getSettings()
+  const filePath = videoFileAbs(index, seg, video, settings.roots)
+  if (!filePath) {
+    throw createError({ statusCode: 404, statusMessage: 'Not found' })
+  }
   const ext = path.extname(video.path).toLowerCase().slice(1)
   const contentType = MIME_TYPES[ext] ?? 'application/octet-stream'
 
