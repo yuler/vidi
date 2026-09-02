@@ -2,6 +2,7 @@
 import { onBeforeUnmount, ref } from 'vue'
 import { ArrowLeft, Gauge, SkipForward } from '@lucide/vue'
 import type { Course, VideoItem } from '~~/shared/types'
+import { progressEntry, progressKey } from '~~/shared/progress'
 
 const route = useRoute()
 const { flatCourses } = useCourses()
@@ -49,7 +50,7 @@ const nextVideo = computed<{ course: Course; video: VideoItem } | null>(() => {
   return next ? { course: course.value, video: next } : null
 })
 
-const key = computed(() => relPath)
+const key = computed(() => progressKey(`${rootIndex}-${courseDir}`, relPath))
 
 function watchUrlFor(v: VideoItem) {
   const parts = v.path.split('/').map(encodeURIComponent)
@@ -63,7 +64,7 @@ function goNext() {
 }
 
 function onLoadedMetadata() {
-  const p = progress.value?.[key.value]
+  const p = progressEntry(progress.value, `${rootIndex}-${courseDir}`, relPath)
   if (p && p.position > 0 && videoEl.value) {
     const seekTo = Math.min(p.position, p.duration - 1)
     videoEl.value.currentTime = seekTo

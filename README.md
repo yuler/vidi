@@ -45,7 +45,7 @@
 ## 部署（launchd）
 
 ```bash
-pnpm launchd:install   # 复制两个 plist 到系统位置（proxy 需一次密码）
+pnpm launchd:install   # 按本机路径渲染并安装两个 plist（proxy 需一次密码）
 pnpm launchd:start     # 加载/重启两个 job
 pnpm launchd:stop      # 停止两个 job
 pnpm launchd:restart   # 重启两个 job
@@ -56,7 +56,7 @@ pnpm launchd:logs      # 实时查看日志
 - 用户态 nitro：`~/Library/LaunchAgents/local.vidi.plist`
 - root 代理：`/Library/LaunchDaemons/local.vidi-proxy.plist`
 
-更新流程：改代码 → `npm run build` → `pnpm launchd:restart`。
+更新流程：改代码 → `pnpm build` → `pnpm launchd:restart`。
 
 > nitro 以用户态运行，`data/` 下的文件属主即当前用户，可直接手改 `settings.json` / `progress.json`。
 
