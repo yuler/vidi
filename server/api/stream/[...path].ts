@@ -1,7 +1,6 @@
 import { promises as fsp } from 'node:fs'
 import fs from 'node:fs'
 import path from 'node:path'
-import { getCoursesIndex } from '../../utils/cache'
 import { ensureFreshIndex } from '../../utils/refresh'
 import { findVideo, parseSegment, videoFileAbs } from '../../utils/video'
 
@@ -24,8 +23,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Not found' })
   }
 
-  await ensureFreshIndex()
-  const index = await getCoursesIndex()
+  const rangeHeader = getHeader(event, 'range')
+  const index = await ensureFreshIndex({ skipMtimeWalk: Boolean(rangeHeader) })
   const video = findVideo(index, seg)
   if (!video) {
     throw createError({ statusCode: 404, statusMessage: 'Not found' })
@@ -43,7 +42,6 @@ export default defineEventHandler(async (event) => {
   }
 
   const fileSize = stat.size
-  const rangeHeader = getHeader(event, 'range')
 
   if (!rangeHeader) {
     setHeader(event, 'Content-Type', contentType)
