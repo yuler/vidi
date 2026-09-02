@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Course, VideoItem } from '~~/shared/types'
+import { progressEntry } from '~~/shared/progress'
 import { ArrowLeft, Folder, Play, Check, Music, ChevronDown } from '@lucide/vue'
 
 const route = useRoute()
@@ -21,13 +22,13 @@ function watchUrl(video: VideoItem) {
 }
 
 function pct(video: VideoItem): number {
-  const p = progress.value?.[video.path]
+  const p = progressEntry(progress.value, course.value?.slug ?? '', video.path)
   if (!p || !p.duration) return 0
   return Math.min(100, Math.round((p.position / p.duration) * 100))
 }
 
 function isDone(video: VideoItem): boolean {
-  const p = progress.value?.[video.path]
+  const p = progressEntry(progress.value, course.value?.slug ?? '', video.path)
   if (!p || !p.duration) return false
   return p.position / p.duration >= 0.95 || p.duration - p.position <= 5
 }
@@ -37,7 +38,7 @@ function groupCount(group: string): number {
 }
 
 function groupOpenDefault(group: string): boolean {
-  return !course.value?.videos.some((v) => v.group === group && !isDone(v))
+  return !!course.value?.videos.some((v) => v.group === group && !isDone(v))
 }
 
 watchEffect(() => {
@@ -72,9 +73,10 @@ watchEffect(() => {
             :key="video.path"
             :to="watchUrl(video)"
             class="group flex items-center gap-4 rounded-2xl border border-border/70 bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+            @click="requestPageFullscreen"
           >
             <div class="relative shrink-0">
-              <VideoCover :course="course" :video="video" class="h-16 w-28 overflow-hidden rounded-xl">
+              <VideoCover :course="course" :video="video" :complete="isDone(video)" class="h-16 w-28 overflow-hidden rounded-xl">
                 <template #fallback>
                   <span
                     class="flex items-center justify-center rounded-full"
@@ -127,9 +129,10 @@ watchEffect(() => {
               :key="video.path"
               :to="watchUrl(video)"
               class="group flex items-center gap-4 rounded-2xl border border-border/70 bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+              @click="requestPageFullscreen"
             >
               <div class="relative shrink-0">
-                <VideoCover :course="course" :video="video" class="h-16 w-28 overflow-hidden rounded-xl">
+                <VideoCover :course="course" :video="video" :complete="isDone(video)" class="h-16 w-28 overflow-hidden rounded-xl">
                   <template #fallback>
                     <span
                       class="flex items-center justify-center rounded-full"

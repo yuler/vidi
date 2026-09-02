@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref } from 'vue'
-import { ArrowLeft, Gauge, SkipForward } from '@lucide/vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { ArrowLeft, Fullscreen, SkipForward } from '@lucide/vue'
 import type { Course, VideoItem } from '~~/shared/types'
+import { progressEntry, progressKey } from '~~/shared/progress'
 
 const route = useRoute()
 const { flatCourses } = useCourses()
@@ -11,6 +12,7 @@ const reporter = useProgressReporter()
 const { data: settings } = await useFetch<{ roots: string[]; autoNext: boolean }>('/api/settings')
 
 const videoEl = ref<HTMLVideoElement | null>(null)
+const playerWrap = ref<HTMLElement | null>(null)
 const speedMenuOpen = ref(false)
 const speed = ref(1)
 const showTitleHint = ref(false)
@@ -49,7 +51,7 @@ const nextVideo = computed<{ course: Course; video: VideoItem } | null>(() => {
   return next ? { course: course.value, video: next } : null
 })
 
-const key = computed(() => relPath)
+const key = computed(() => progressKey(`${rootIndex}-${courseDir}`, relPath))
 
 function watchUrlFor(v: VideoItem) {
   const parts = v.path.split('/').map(encodeURIComponent)
@@ -62,12 +64,35 @@ function goNext() {
   }
 }
 
+function fsElement() {
+  return document.fullscreenElement || (document as any).webkitFullscreenElement || null
+}
+
+function tryEnterFullscreen() {
+  const wrap = playerWrap.value
+  const el = videoEl.value
+  const current = fsElement()
+  if (current === wrap || current === el) return
+  const target = wrap ?? el
+  if (!target) return
+  if (target.requestFullscreen) {
+    target.requestFullscreen().catch(() => {
+      if (!fsElement() && el && (el as any).webkitEnterFullscreen) {
+        (el as any).webkitEnterFullscreen()
+      }
+    })
+  } else if (el && (el as any).webkitEnterFullscreen) {
+    (el as any).webkitEnterFullscreen()
+  }
+}
+
 function onLoadedMetadata() {
-  const p = progress.value?.[key.value]
+  const p = progressEntry(progress.value, `${rootIndex}-${courseDir}`, relPath)
   if (p && p.position > 0 && videoEl.value) {
     const seekTo = Math.min(p.position, p.duration - 1)
     videoEl.value.currentTime = seekTo
   }
+  tryEnterFullscreen()
 }
 
 function onPlay() {
@@ -109,19 +134,27 @@ function setSpeed(s: number) {
 }
 
 function enterFullscreen() {
+  const wrap = playerWrap.value
   const el = videoEl.value
-  if (!el) return
-  if (document.fullscreenElement) {
-    document.exitFullscreen().catch(() => {})
-  } else if (el.requestFullscreen) {
-    el.requestFullscreen().catch(() => {})
-  } else if ((el as any).webkitEnterFullscreen) {
-    ;(el as any).webkitEnterFullscreen()
+  const current = fsElement()
+  if (current && current !== wrap && current !== el) {
+    tryEnterFullscreen()
+    return
   }
+  if (current) {
+    if (document.exitFullscreen) document.exitFullscreen().catch(() => {})
+    else if ((document as any).webkitExitFullscreen) (document as any).webkitExitFullscreen()
+    return
+  }
+  tryEnterFullscreen()
 }
 
 watch(() => settings.value, (s) => {
   if (s && videoEl.value) videoEl.value.playbackRate = speed.value
+})
+
+onMounted(() => {
+  tryEnterFullscreen()
 })
 
 onBeforeUnmount(() => {
@@ -146,12 +179,12 @@ onBeforeUnmount(() => {
         <p class="truncate text-sm text-muted-foreground">{{ course?.title }}</p>
       </div>
       <Button variant="ghost" class="rounded-xl text-base font-bold text-muted-foreground" @click="enterFullscreen">
-        <Gauge class="mr-1 size-5" />
+        <Fullscreen class="mr-1 size-5" />
         全屏
       </Button>
     </div>
 
-    <div class="relative overflow-hidden rounded-2xl bg-black">
+    <div ref="playerWrap" class="relative overflow-hidden rounded-2xl bg-black">
       <video
         ref="videoEl"
         :src="streamUrl"

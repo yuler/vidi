@@ -11,12 +11,35 @@ const execFileAsync = promisify(execFile)
 const COVER_DIR = dataFile('covers')
 const FFMPEG_CANDIDATES = ['ffmpeg', '/opt/homebrew/bin/ffmpeg', '/usr/local/bin/ffmpeg']
 const FFPROBE_CANDIDATES = ['ffprobe', '/opt/homebrew/bin/ffprobe', '/usr/local/bin/ffprobe']
+const COVER_CONCURRENCY = 3
 
 let ffmpegPath: string | null = null
 let ffprobePath: string | null = null
 
 const inFlight = new Map<string, Promise<string | null>>()
 const failed = new Set<string>()
+
+let activeCovers = 0
+const coverWaiters: Array<() => void> = []
+
+function acquireCoverSlot(): Promise<void> {
+  if (activeCovers < COVER_CONCURRENCY) {
+    activeCovers++
+    return Promise.resolve()
+  }
+  return new Promise((resolve) => {
+    coverWaiters.push(resolve)
+  })
+}
+
+function releaseCoverSlot() {
+  const next = coverWaiters.shift()
+  if (next) {
+    next()
+    return
+  }
+  activeCovers--
+}
 
 async function resolveBin(candidates: string[]): Promise<string | null> {
   for (const bin of candidates) {
@@ -89,6 +112,32 @@ export function coverPath(video: VideoItem): string {
   return path.join(COVER_DIR, coverKey(video))
 }
 
+async function generateCover(fileAbs: string, out: string): Promise<string | null> {
+  await acquireCoverSlot()
+  try {
+    try {
+      await fs.access(out)
+      return out
+    } catch {
+      // still a miss after waiting for a slot
+    }
+    await fs.mkdir(COVER_DIR, { recursive: true })
+    const duration = await probeDuration(fileAbs)
+    if (duration === null) {
+      failed.add(out)
+      return null
+    }
+    const ok = await extractFrame(fileAbs, duration, out)
+    if (!ok) {
+      failed.add(out)
+      return null
+    }
+    return out
+  } finally {
+    releaseCoverSlot()
+  }
+}
+
 export async function getCoverPath(video: VideoItem, fileAbs: string): Promise<string | null> {
   const out = coverPath(video)
   try {
@@ -102,20 +151,7 @@ export async function getCoverPath(video: VideoItem, fileAbs: string): Promise<s
 
   let pending = inFlight.get(out)
   if (!pending) {
-    pending = (async (): Promise<string | null> => {
-      await fs.mkdir(COVER_DIR, { recursive: true })
-      const duration = await probeDuration(fileAbs)
-      if (duration === null) {
-        failed.add(out)
-        return null
-      }
-      const ok = await extractFrame(fileAbs, duration, out)
-      if (!ok) {
-        failed.add(out)
-        return null
-      }
-      return out
-    })()
+    pending = generateCover(fileAbs, out)
     inFlight.set(out, pending)
     pending.finally(() => inFlight.delete(out)).catch(() => {})
   }
