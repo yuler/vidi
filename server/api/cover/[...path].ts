@@ -1,6 +1,6 @@
 import { promises as fsp } from 'node:fs'
 import fs from 'node:fs'
-import { getCoursesIndex } from '../../utils/cache'
+import { getCoursesIndex, getSettings } from '../../utils/cache'
 import { ensureFreshIndex } from '../../utils/refresh'
 import { getCoverPath } from '../../utils/cover'
 import { findVideo, parseSegment, videoFileAbs } from '../../utils/video'
@@ -19,7 +19,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Not found' })
   }
 
-  const fileAbs = videoFileAbs(index, seg, video)
+  const settings = await getSettings()
+  const fileAbs = videoFileAbs(index, seg, video, settings.roots)
+  if (!fileAbs) {
+    throw createError({ statusCode: 404, statusMessage: 'Not found' })
+  }
   const cover = await getCoverPath(video, fileAbs)
   if (!cover) {
     throw createError({ statusCode: 404, statusMessage: 'Not found' })

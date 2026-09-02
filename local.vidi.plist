@@ -13,6 +13,8 @@
     <string>/Users/yule/Projects/vidi</string>
     <key>EnvironmentVariables</key>
     <dict>
+        <key>HOST</key>
+        <string>127.0.0.1</string>
         <key>PORT</key>
         <string>8080</string>
         <key>NODE_ENV</key>
