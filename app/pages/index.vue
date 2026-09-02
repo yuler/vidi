@@ -65,6 +65,7 @@ function watchUrl(course: Course, video: VideoItem) {
           :key="item.watchUrl"
           :to="item.watchUrl"
           class="group overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          @click="requestPageFullscreen"
         >
           <div class="relative">
             <VideoCover :course="item.course" :video="item.video" class="aspect-video w-full">
