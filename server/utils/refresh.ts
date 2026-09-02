@@ -1,10 +1,13 @@
 import { promises as fs } from 'node:fs'
-import path from 'node:path'
 import type { CoursesIndex } from '../../shared/types'
 import { getCoursesIndex, getSettings, setCoursesIndex } from './cache'
 import { scanRoots } from './scan'
 
+const MTIME_COOLDOWN_MS = 5000
+
 let rescanRunning: Promise<CoursesIndex> | null = null
+let mtimeCheckRunning: Promise<CoursesIndex> | null = null
+let lastMtimeCheckAt = 0
 
 function dirChanged(root: CoursesIndex['roots'][number]): Promise<boolean> {
   const mtimes = root.dirMtimes
@@ -21,7 +24,28 @@ function dirChanged(root: CoursesIndex['roots'][number]): Promise<boolean> {
   return Promise.all(checks).then((results) => results.some(Boolean))
 }
 
-export async function ensureFreshIndex(): Promise<CoursesIndex> {
+async function checkMtimes(index: CoursesIndex): Promise<CoursesIndex> {
+  if (mtimeCheckRunning) return mtimeCheckRunning
+
+  const now = Date.now()
+  if (now - lastMtimeCheckAt < MTIME_COOLDOWN_MS) {
+    return index
+  }
+  lastMtimeCheckAt = now
+
+  mtimeCheckRunning = (async () => {
+    const changed = await Promise.all(index.roots.map(dirChanged))
+    if (changed.some(Boolean)) {
+      return rescan()
+    }
+    return index
+  })().finally(() => {
+    mtimeCheckRunning = null
+  })
+  return mtimeCheckRunning
+}
+
+export async function ensureFreshIndex(opts?: { skipMtimeWalk?: boolean }): Promise<CoursesIndex> {
   const settings = await getSettings()
   const index = await getCoursesIndex()
 
@@ -33,12 +57,11 @@ export async function ensureFreshIndex(): Promise<CoursesIndex> {
     return rescan()
   }
 
-  const changed = await Promise.all(index.roots.map(dirChanged))
-  if (changed.some(Boolean)) {
-    return rescan()
+  if (opts?.skipMtimeWalk && index.scannedAt > 0) {
+    return index
   }
 
-  return index
+  return checkMtimes(index)
 }
 
 export function rescan(): Promise<CoursesIndex> {
@@ -47,6 +70,7 @@ export function rescan(): Promise<CoursesIndex> {
     const settings = await getSettings()
     const index = await scanRoots(settings.roots)
     await setCoursesIndex(index)
+    lastMtimeCheckAt = Date.now()
     return index
   })().finally(() => {
     rescanRunning = null
