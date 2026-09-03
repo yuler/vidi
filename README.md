@@ -61,6 +61,24 @@ pnpm launchd:logs      # 实时查看日志
 
 > nitro 以用户态运行，`data/` 下的文件属主即当前用户，可直接手改 `settings.json` / `progress.json`。
 
+## 部署（Docker）
+
+也可以用 GHCR 镜像跑，不必在本机构建。`main` 推 `latest`，`v*` 标签推 semver。
+
+```bash
+docker run --rm -p 8080:8080 \
+  -v /path/to/英语资料:/library \
+  -v vidi-data:/app/data \
+  ghcr.io/yuler/vidi:latest
+```
+
+- 视频库挂到容器内 **`/library`**，不要打进镜像。进度、封面缓存在 named volume `vidi-data`（容器内 `/app/data`，即 `settings.json` / `progress.json` / `covers/`）
+- 第一次打开 **设置**，把根目录改成 `/library` 后保存（默认仍是本机 `/Volumes/ToshibaSSD/英语资料`，容器里没有这块盘）
+- 容器内 `HOST=0.0.0.0 PORT=8080`；本机 launchd 仍监听 `127.0.0.1:8080`，互不影响
+- 镜像含 ffmpeg，封面抽帧可用
+- 同时发布 `linux/amd64` 与 `linux/arm64`（Apple Silicon 可直接 pull）
+- 仓库是公开的，但 GHCR 包在设成 public 之前，第一次拉取可能需要：`docker login ghcr.io`
+
 ## 开发
 
 ```bash
