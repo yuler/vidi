@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, ref } from 'vue'
 import { ArrowLeft, Fullscreen, SkipForward } from '@lucide/vue'
 import type { Course, VideoItem } from '~~/shared/types'
 import { progressEntry, progressKey } from '~~/shared/progress'
@@ -92,7 +92,6 @@ function onLoadedMetadata() {
     const seekTo = Math.min(p.position, p.duration - 1)
     videoEl.value.currentTime = seekTo
   }
-  tryEnterFullscreen()
 }
 
 function onPlay() {
@@ -151,10 +150,6 @@ function enterFullscreen() {
 
 watch(() => settings.value, (s) => {
   if (s && videoEl.value) videoEl.value.playbackRate = speed.value
-})
-
-onMounted(() => {
-  tryEnterFullscreen()
 })
 
 onBeforeUnmount(() => {
