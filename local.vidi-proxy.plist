@@ -6,8 +6,8 @@
     <string>local.vidi-proxy</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/usr/bin/python3</string>
-        <string>@@PROJECT_DIR@@/scripts/proxy.py</string>
+        <string>@@NODE_BIN@@</string>
+        <string>@@PROJECT_DIR@@/scripts/proxy.mjs</string>
     </array>
     <key>WorkingDirectory</key>
     <string>@@PROJECT_DIR@@</string>

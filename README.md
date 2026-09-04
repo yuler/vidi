@@ -37,7 +37,7 @@
 - Mac 主机名已设为 `vidi`，Bonjour 自动注册 `vidi.local`
 - 服务常驻，两个 launchd job：
   - **`local.vidi`**（用户态 LaunchAgent）— Node 跑 Nitro，监听 `127.0.0.1:8080`，负责扫描硬盘、进度、视频流
-  - **`local.vidi-proxy`**（root LaunchDaemon）— `/usr/bin/python3` + `scripts/proxy.py` 把 80 转到 8080，不依赖 fnm / 用户 Node
+  - **`local.vidi-proxy`**（root LaunchDaemon）— `scripts/proxy.mjs` 把 80 转到 8080；安装时把绝对 `node` 路径写入 plist，root 不依赖 fnm / 用户 PATH
 - 日志：服务 `/tmp/vidi.log`，代理 `/tmp/vidi-proxy.log`
 
 > 为什么不用 root 直接监听 80：macOS 的 TCC 会拦 root 进程读取可移动硬盘（`/Volumes`），导致视频流 EPERM。所以读盘的 nitro 以用户态跑 8080，root 只做不读盘的端口转发。
@@ -54,8 +54,7 @@ pnpm launchd:logs      # 实时查看日志
 ```
 
 - 用户态 nitro：`~/Library/LaunchAgents/local.vidi.plist`。仍用 Node：`pnpm launchd:install` 把当时 PATH 上的 node 写入 `@@NODE_BIN@@`
-- root 代理：`/Library/LaunchDaemons/local.vidi-proxy.plist`。固定 `/usr/bin/python3` + `scripts/proxy.py`（80 → 8080）
-- 代理需要真正能跑的 `/usr/bin/python3`（经常只是 Xcode Command Line Tools 的 stub，装好 CLT 后才可用）
+- root 代理：`/Library/LaunchDaemons/local.vidi-proxy.plist`。`pnpm launchd:install` 把当时 PATH 上的 node 写入 `@@NODE_BIN@@`，跑 `scripts/proxy.mjs`（80 → 8080）
 
 更新流程：改代码 → `pnpm build` → `pnpm launchd:restart`。
 
