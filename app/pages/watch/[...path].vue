@@ -2,7 +2,7 @@
 import { onBeforeUnmount, ref } from 'vue'
 import { ArrowLeft, Fullscreen, SkipForward } from '@lucide/vue'
 import type { Course, VideoItem } from '~~/shared/types'
-import { progressEntry, progressKey } from '~~/shared/progress'
+import { isProgressDone, progressEntry, progressKey } from '~~/shared/progress'
 
 const route = useRoute()
 const { flatCourses } = useCourses()
@@ -88,6 +88,7 @@ function tryEnterFullscreen() {
 
 function onLoadedMetadata() {
   const p = progressEntry(progress.value, `${rootIndex}-${courseDir}`, relPath)
+  if (isProgressDone(p)) return
   if (p && p.position > 0 && videoEl.value) {
     const seekTo = Math.min(p.position, p.duration - 1)
     videoEl.value.currentTime = seekTo
@@ -101,6 +102,7 @@ function onPlay() {
 function onTimeUpdate() {
   const el = videoEl.value
   if (!el) return
+  if (isProgressDone(progressEntry(progress.value, `${rootIndex}-${courseDir}`, relPath))) return
   if (el.duration && Number.isFinite(el.duration)) {
     reporter.send({ key: key.value, position: el.currentTime, duration: el.duration })
   }
@@ -108,7 +110,9 @@ function onTimeUpdate() {
 
 function onEnded() {
   const el = videoEl.value
-  if (el) reporter.send({ key: key.value, position: el.duration || 0, duration: el.duration || 0 })
+  if (el?.duration) {
+    reporter.send({ key: key.value, position: el.duration, duration: el.duration, completed: true })
+  }
   if (settings.value?.autoNext && nextVideo.value) {
     showTitleHint.value = true
     titleHintText.value = nextVideo.value.video.title

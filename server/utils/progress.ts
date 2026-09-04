@@ -1,5 +1,5 @@
-import type { ProgressMap } from '../../shared/types'
-import { migrateProgressKeys } from '../../shared/progress'
+import type { ProgressEntry, ProgressMap } from '../../shared/types'
+import { isProgressDone, migrateProgressKeys, reachedDoneThreshold } from '../../shared/progress'
 import { getCoursesIndex } from './cache'
 import { readJson, writeJson } from './store'
 
@@ -48,9 +48,18 @@ export async function getProgress(): Promise<ProgressMap> {
   return load()
 }
 
-export async function setProgress(key: string, entry: { position: number; duration: number; updatedAt: number }) {
+export async function setProgress(key: string, entry: ProgressEntry) {
   const map = await load()
-  map[key] = entry
+  const prev = map[key]
+  const unmark = entry.completed === false
+  if (prev && isProgressDone(prev) && !unmark) return
+  const completed = !unmark && (entry.completed === true || reachedDoneThreshold(entry))
+  map[key] = {
+    position: entry.position,
+    duration: entry.duration,
+    updatedAt: entry.updatedAt,
+    ...(completed ? { completed: true } : {}),
+  }
   scheduleWrite()
 }
 

@@ -21,6 +21,6 @@ export function useCourses() {
 }
 
 export function useProgress() {
-  const { data: progress, refresh } = useFetch<ProgressMap>('/api/progress')
+  const { data: progress, refresh } = useFetch<ProgressMap>('/api/progress', { key: 'vidi-progress' })
   return { progress, refresh }
 }

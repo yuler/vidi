@@ -1,39 +1,36 @@
 <script setup lang="ts">
-import type { Course, VideoItem } from '~~/shared/types'
-import { matchProgressVideo, progressKey } from '~~/shared/progress'
-import { History, Play, AlertTriangle, Film, RefreshCw } from '@lucide/vue'
+import type { Course } from '~~/shared/types'
+import { matchProgressVideo } from '~~/shared/progress'
+import { Play, AlertTriangle, Film, RefreshCw } from '@lucide/vue'
 
 const { flatCourses, status, error, refresh } = useCourses()
 const { progress } = useProgress()
 
-const continueWatching = computed<{ course: Course; video: VideoItem; courseUrl: string; watchUrl: string; pct: number }[]>(() => {
-  const out: { course: Course; video: VideoItem; courseUrl: string; watchUrl: string; pct: number }[] = []
-  const seen = new Set<string>()
-  const entries = Object.entries(progress.value ?? {})
-    .filter(([, p]) => p && p.position > 0 && p.duration > 0 && p.position / p.duration < 0.95 && p.duration - p.position > 5)
-    .sort((a, b) => b[1].updatedAt - a[1].updatedAt)
-
-  for (const [key, p] of entries) {
+const lastWatchedSlug = computed(() => {
+  let bestSlug: string | null = null
+  let bestAt = 0
+  for (const [key, p] of Object.entries(progress.value ?? {})) {
+    if (!p?.updatedAt) continue
     const match = matchProgressVideo(key, flatCourses.value)
     if (!match) continue
-    const id = progressKey(match.course.slug, match.video.path)
-    if (seen.has(id)) continue
-    seen.add(id)
-    out.push({
-      course: match.course,
-      video: match.video,
-      courseUrl: `/course/${match.course.slug}`,
-      watchUrl: watchUrl(match.course, match.video),
-      pct: Math.round((p.position / p.duration) * 100),
-    })
-    if (out.length >= 6) break
+    if (p.updatedAt > bestAt) {
+      bestAt = p.updatedAt
+      bestSlug = match.course.slug
+    }
   }
-  return out
+  return bestSlug
 })
 
-function watchUrl(course: Course, video: VideoItem) {
-  return `/watch/${course.rootIndex}/${encodeURIComponent(course.dir)}/${video.path.split('/').map(encodeURIComponent).join('/')}`
-}
+const homeCourses = computed<Course[]>(() => {
+  const list = [...flatCourses.value]
+  const slug = lastWatchedSlug.value
+  if (!slug) return list
+  const i = list.findIndex((c) => c.slug === slug)
+  if (i <= 0) return list
+  const [course] = list.splice(i, 1)
+  if (!course) return list
+  return [course, ...list]
+})
 </script>
 
 <template>
@@ -52,41 +49,6 @@ function watchUrl(course: Course, video: VideoItem) {
       </div>
     </div>
 
-    <section v-if="continueWatching.length" class="mb-10">
-      <h2 class="mb-4 flex items-center gap-2 text-xl font-extrabold">
-        <History class="size-6 text-primary" />
-        继续观看
-      </h2>
-      <div class="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
-        <NuxtLink
-          v-for="item in continueWatching"
-          :key="item.watchUrl"
-          :to="item.watchUrl"
-          class="group overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-          @click="requestPageFullscreen"
-        >
-          <div class="relative">
-            <VideoCover :course="item.course" :video="item.video" class="aspect-video w-full">
-              <template #fallback>
-                <span class="flex size-12 items-center justify-center rounded-full bg-white/90 text-primary shadow">
-                  <Play class="size-5 fill-current" />
-                </span>
-              </template>
-              <template #overlay>
-                <div class="absolute bottom-0 left-0 right-0 h-2 bg-black/30">
-                  <div class="h-full rounded-r-full bg-primary" :style="{ width: item.pct + '%' }" />
-                </div>
-              </template>
-            </VideoCover>
-          </div>
-          <div class="p-4">
-            <p class="line-clamp-1 text-base font-bold">{{ item.video.title }}</p>
-            <p class="mt-1 line-clamp-1 text-sm text-muted-foreground">{{ item.course.title }}</p>
-          </div>
-        </NuxtLink>
-      </div>
-    </section>
-
     <section>
       <h2 class="mb-4 flex items-center gap-2 text-xl font-extrabold">
         <Film class="size-6 text-primary" />
@@ -99,10 +61,11 @@ function watchUrl(course: Course, video: VideoItem) {
 
       <div v-else class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         <NuxtLink
-          v-for="course in flatCourses"
+          v-for="course in homeCourses"
           :key="course.slug"
           :to="`/course/${course.slug}`"
-          class="group overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+          class="group overflow-hidden rounded-2xl border bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          :class="course.slug === lastWatchedSlug ? 'border-primary ring-2 ring-primary/20' : 'border-border/70 hover:border-primary/40'"
         >
           <VideoCover
             v-if="course.videos[0]"
@@ -113,6 +76,14 @@ function watchUrl(course: Course, video: VideoItem) {
             <template #fallback>
               <span class="flex size-12 items-center justify-center rounded-full bg-white/90 text-primary shadow">
                 <Play class="size-5 fill-current" />
+              </span>
+            </template>
+            <template #overlay>
+              <span
+                v-if="course.slug === lastWatchedSlug"
+                class="absolute left-3 top-3 z-10 rounded-full bg-primary px-3 py-1 text-sm font-bold text-primary-foreground shadow"
+              >
+                最近在看
               </span>
             </template>
           </VideoCover>

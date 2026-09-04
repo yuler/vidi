@@ -4,6 +4,17 @@ export function progressKey(courseSlug: string, videoPath: string) {
   return `${courseSlug}:${videoPath}`
 }
 
+export function reachedDoneThreshold(p: { position: number; duration: number }) {
+  if (!p.duration) return false
+  return p.position / p.duration >= 0.95 || p.duration - p.position <= 5
+}
+
+export function isProgressDone(p?: ProgressEntry | null) {
+  if (!p) return false
+  if (p.completed) return true
+  return reachedDoneThreshold(p)
+}
+
 export function progressEntry(
   map: ProgressMap | null | undefined,
   courseSlug: string,

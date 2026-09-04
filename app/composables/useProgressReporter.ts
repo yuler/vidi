@@ -1,15 +1,17 @@
 const THROTTLE_MS = 5000
 
+type ProgressPayload = { key: string; position: number; duration: number; completed?: boolean }
+
 export function useProgressReporter() {
   let lastSent = 0
-  let pending: { key: string; position: number; duration: number } | null = null
+  let pending: ProgressPayload | null = null
   let inFlight = false
 
-  async function send(payload: { key: string; position: number; duration: number }) {
+  async function send(payload: ProgressPayload) {
     pending = payload
     const now = Date.now()
     if (inFlight) return
-    if (now - lastSent < THROTTLE_MS) return
+    if (payload.completed !== true && now - lastSent < THROTTLE_MS) return
     await drain()
   }
 
@@ -23,7 +25,7 @@ export function useProgressReporter() {
       lastSent = Date.now()
     } finally {
       inFlight = false
-      if (pending && Date.now() - lastSent >= THROTTLE_MS) {
+      if (pending && (pending.completed === true || Date.now() - lastSent >= THROTTLE_MS)) {
         drain()
       }
     }

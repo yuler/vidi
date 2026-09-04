@@ -21,6 +21,7 @@ export interface ProgressEntry {
   position: number
   duration: number
   updatedAt: number
+  completed?: boolean
 }
 
 export type ProgressMap = Record<string, ProgressEntry>
